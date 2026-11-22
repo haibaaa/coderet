@@ -225,9 +225,11 @@ def build_parser() -> argparse.ArgumentParser:
                    help="snippet lines per result (default: 8, or the whole chunk with --pretty)")
     s.add_argument("--pretty", action="store_true",
                    help="syntax-highlighted output in a scrollable pager (for humans)")
-    s.add_argument("--no-pager", action="store_true", help="with --pretty: print directly, no pager")
-    s.add_argument("--theme", default="monokai",
-                   help="with --pretty: pygments colour theme, e.g. monokai, github-dark, solarized-light")
+    s.add_argument("--no-pager", action="store_true",
+                   help="with --pretty: print directly instead of using less (or $CODERET_PAGER)")
+    s.add_argument("--theme", default="ansi_dark",
+                   help="with --pretty: colour theme. Default ansi_dark uses the terminal's own palette; "
+                        "also ansi_light, or any pygments style such as monokai or github-dark")
     s.add_argument("--with-deps", action="store_true", help="show call sites of each result's symbol")
     s.set_defaults(func=cmd_search)
 
