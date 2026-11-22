@@ -1,0 +1,43 @@
+[project]
+name = "coderet"
+version = "0.1.0"
+description = "Offline, CPU-friendly code retrieval research tool (tree-sitter chunking, dependency graph, hybrid dense + BM25 search)."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=1.26",
+    "tree-sitter>=0.23",
+    "tree-sitter-language-pack>=0.13",
+    # Embedding / reranking backend (CPU build of torch, see [tool.uv.sources]).
+    "torch>=2.2",
+    # transformers 5.x breaks CodeRankEmbed's remote modeling code
+    # (removed get_extended_attention_mask).
+    "transformers>=4.48,<5",
+    "sentence-transformers>=3.0,<6",
+    "einops",
+]
+
+[project.scripts]
+coderet = "coderet.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[build-system]
+requires = ["uv_build>=0.10.2,<0.11"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-root = ""
+
+# Always install the CPU-only torch wheel (no CUDA runtime downloads).
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu" }]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

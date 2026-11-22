@@ -1,0 +1,10 @@
+{"id": "incremental", "query": "skip files whose size and modification time are unchanged", "relevant": ["coderet/indexer.py::Indexer.scan"]}
+{"id": "rrf", "query": "combine dense and lexical rankings with reciprocal rank fusion", "relevant": ["coderet/search.py::Searcher.search"]}
+{"id": "dense-scan", "query": "stream embedding vectors from the database in batches and keep the top k scores", "relevant": ["coderet/search.py::Searcher.dense"]}
+{"id": "py-import", "query": "resolve a python relative import to a file", "relevant": ["coderet/resolve.py::resolve_import"]}
+{"id": "go-mod", "query": "read the module path from go.mod", "relevant": ["coderet/resolve.py::_go_module_path"]}
+{"id": "windows", "query": "split lines into overlapping windows bounded by a character limit", "relevant": ["coderet/parsing.py::_window_chunks"]}
+{"id": "camel", "query": "split camelCase and snake_case identifiers into sub-tokens", "relevant": ["coderet/embedder.py::code_subtokens"]}
+{"id": "unknown-keys", "query": "reject unknown configuration keys", "relevant": ["coderet/config.py::_merge"]}
+{"id": "ndcg", "query": "compute recall, MRR and nDCG for one query", "relevant": ["coderet/evaluate.py::score_query"]}
+{"id": "callers", "query": "find the call sites of a function", "relevant": ["coderet/graph.py::callers"]}

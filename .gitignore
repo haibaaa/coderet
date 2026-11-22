@@ -1,0 +1,8 @@
+.venv/
+.coderet/
+__pycache__/
+*.egg-info/
+.pytest_cache/
+eval-*.json
+CLAUDE.md
+

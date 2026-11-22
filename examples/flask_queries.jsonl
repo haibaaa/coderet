@@ -1,0 +1,45 @@
+# Eval queries for pallets/flask @ 49943b5a94413a530761350f04e896f76e8d620e (2026-10-30)
+# Hand-written; targets are paths relative to the flask repo root, "path::Symbol".
+# Run: uv run coderet eval examples/flask_queries.jsonl --repo ~/r/flask --modes dense,lexical,hybrid
+{"id": "session-sign", "query": "create the serializer that signs the session cookie with the secret key", "relevant": ["src/flask/sessions.py::SecureCookieSessionInterface.get_signing_serializer"]}
+{"id": "session-save", "query": "write session data back to the response as a cookie, or delete the cookie when the session is empty", "relevant": ["src/flask/sessions.py::SecureCookieSessionInterface.save_session"]}
+{"id": "session-refresh", "query": "decide whether a Set-Cookie header must be sent for the session on this response", "relevant": ["src/flask/sessions.py::SessionInterface.should_set_cookie"]}
+{"id": "fips-sha1", "query": "avoid touching SHA-1 at import time because FIPS builds may not provide it", "relevant": ["src/flask/sessions.py::_lazy_sha1"]}
+{"id": "wsgi-entry", "query": "the WSGI callable that pushes the context, dispatches the request and handles errors", "relevant": ["src/flask/app.py::Flask.wsgi_app"]}
+{"id": "full-dispatch", "query": "run before-request hooks, call the view function, then finalize the response", "relevant": ["src/flask/app.py::Flask.full_dispatch_request"]}
+{"id": "view-return", "query": "convert a view's return value such as a string, dict or tuple into a response object", "relevant": ["src/flask/app.py::Flask.make_response"]}
+{"id": "options", "query": "build the automatic response to an HTTP OPTIONS request listing the allowed methods", "relevant": ["src/flask/app.py::Flask.make_default_options_response"]}
+{"id": "after-hooks", "query": "apply after-request functions and save the session before the response is sent", "relevant": ["src/flask/app.py::Flask.process_response"]}
+{"id": "unhandled-exc", "query": "handle an uncaught exception by logging it and returning a 500 internal server error", "relevant": ["src/flask/app.py::Flask.handle_exception"]}
+{"id": "error-handler-lookup", "query": "find the registered error handler for an exception by walking its class hierarchy and the blueprint chain", "relevant": ["src/flask/sansio/app.py::App._find_error_handler"]}
+{"id": "exc-code", "query": "turn an HTTP status code or exception class into the exception type and its status code", "relevant": ["src/flask/sansio/scaffold.py::Scaffold._get_exc_class_and_code"]}
+{"id": "bp-register", "query": "attach a blueprint to the application, applying its options and running deferred setup functions", "relevant": ["src/flask/sansio/blueprints.py::Blueprint.register"]}
+{"id": "bp-url-prefix", "query": "prepend the blueprint's URL prefix and name to rules added from a blueprint", "relevant": ["src/flask/sansio/blueprints.py::BlueprintSetupState.add_url_rule"]}
+{"id": "nested-bp-names", "query": "split a dotted nested blueprint name into the list of all its parent names", "relevant": ["src/flask/helpers.py::_split_blueprint_path"]}
+{"id": "route-decorator", "query": "decorator that registers a view function for a URL rule", "relevant": ["src/flask/sansio/scaffold.py::Scaffold.route"]}
+{"id": "config-env-prefix", "query": "load settings from environment variables starting with FLASK_ and parse their values as JSON", "relevant": ["src/flask/config.py::Config.from_prefixed_env"]}
+{"id": "config-pyfile", "query": "load configuration values by executing a Python file on disk", "relevant": ["src/flask/config.py::Config.from_pyfile"]}
+{"id": "config-namespace", "query": "get the subset of configuration keys sharing a prefix as a dictionary with lowercase keys", "relevant": ["src/flask/config.py::Config.get_namespace"]}
+{"id": "cli-find-app", "query": "search a module for an application instance or an application factory function", "relevant": ["src/flask/cli.py::find_best_app"]}
+{"id": "cli-import-path", "query": "work out the module name for a file path and add its directory to sys.path", "relevant": ["src/flask/cli.py::prepare_import"]}
+{"id": "dotenv", "query": "read environment variables from .env and .flaskenv files", "relevant": ["src/flask/cli.py::load_dotenv"]}
+{"id": "plugin-commands", "query": "load command line commands provided by installed packages through entry points", "relevant": ["src/flask/cli.py::FlaskGroup._load_plugin_commands"]}
+{"id": "routes-cmd", "query": "command that prints every registered URL rule with its endpoint and methods", "relevant": ["src/flask/cli.py::routes_command"]}
+{"id": "ssl-cert", "query": "validate the certificate option of the development server, including adhoc certificates", "relevant": ["src/flask/cli.py::CertParamType.convert"]}
+{"id": "template-loader", "query": "look up a template across the application and every blueprint's template folder", "relevant": ["src/flask/templating.py::DispatchingJinjaLoader"]}
+{"id": "render", "query": "render a template by name with the given context variables", "relevant": ["src/flask/templating.py::render_template"]}
+{"id": "stream-ctx", "query": "keep the request context available while a streaming response generator is running", "relevant": ["src/flask/helpers.py::stream_with_context"]}
+{"id": "flash", "query": "store a message for the user and show it on the next page", "relevant": ["src/flask/helpers.py::flash", "src/flask/helpers.py::get_flashed_messages"]}
+{"id": "send-file", "query": "serve a file from a directory safely, rejecting paths that escape it", "relevant": ["src/flask/helpers.py::send_from_directory"]}
+{"id": "json-tag", "query": "serialize tuples, bytes, datetimes and UUIDs stored in the session to compact tagged JSON", "relevant": ["src/flask/json/tag.py::TaggedJSONSerializer"]}
+{"id": "jsonify", "query": "create a JSON response from arguments with the application/json mimetype", "relevant": ["src/flask/json/__init__.py::jsonify"]}
+{"id": "enctype", "query": "give a helpful error when an uploaded file is accessed but the form was not submitted as multipart", "relevant": ["src/flask/debughelpers.py::attach_enctype_error_multidict"]}
+{"id": "instance-path", "query": "locate the instance folder next to the application module or package", "relevant": ["src/flask/sansio/app.py::App.auto_find_instance_path"]}
+{"id": "logger-handler", "query": "check whether any logging handler in the chain will handle the logger's effective level", "relevant": ["src/flask/logging.py::has_level_handler"]}
+{"id": "g-object", "query": "namespace object for storing arbitrary data during an application context", "relevant": ["src/flask/ctx.py::_AppCtxGlobals"]}
+{"id": "after-this-request", "query": "register a function to run after only the current request", "relevant": ["src/flask/ctx.py::after_this_request"]}
+{"id": "method-view", "query": "class-based view that dispatches to a method named after the HTTP verb", "relevant": ["src/flask/views.py::MethodView"]}
+{"id": "test-session", "query": "modify the session inside a test before making a request", "relevant": ["src/flask/testing.py::FlaskClient.session_transaction"]}
+{"id": "async-view", "query": "make an async view function callable from synchronous WSGI code", "relevant": ["src/flask/app.py::Flask.ensure_sync", "src/flask/app.py::Flask.async_to_sync"]}
+{"id": "max-body", "query": "limit on the maximum number of bytes accepted in the request body", "relevant": ["src/flask/wrappers.py::Request.max_content_length"]}
+{"id": "url-build-error", "query": "what happens when building a URL for an endpoint fails", "relevant": ["src/flask/sansio/app.py::App.handle_url_build_error"]}

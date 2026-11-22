@@ -1,0 +1,50 @@
+# Copy to <repo>/coderet.toml (or pass --config). Every key is optional;
+# unknown keys are rejected. `coderet config` prints the effective settings.
+
+seed = 0
+
+[model]
+backend = "sentence-transformers"     # or "hashing" (model-free, tests only)
+name = "nomic-ai/CodeRankEmbed"
+# revision = "3c4b60807d71f79b43f3c4363786d9493691f8b1"   # pin for reproducibility
+query_prefix = "Represent this query for searching relevant code: "
+document_prefix = ""
+trust_remote_code = true
+max_seq_length = 1024
+batch_size = 8
+device = "cpu"
+# num_threads = 2
+
+# Alternative checkpoints (vectors are cached per model, so you can switch freely):
+#   name = "Salesforce/SFR-Embedding-Code-400M_R"   query_prefix = "Instruct: Given Code or Text, retrieval relevant content\nQuery: "
+#   name = "jinaai/jina-embeddings-v2-base-code"     query_prefix = ""
+
+[rerank]
+enabled = false
+name = "jinaai/jina-reranker-v2-base-multilingual"
+pool = 30
+batch_size = 4
+
+[chunking]          # changing these re-parses every file on the next `index`
+max_chunk_chars = 3000
+window_lines = 60
+window_overlap = 10
+min_chunk_chars = 20
+embed_header = true
+
+[index]
+path = ".coderet/index.db"
+max_file_bytes = 1000000
+file_batch = 32
+embed_fetch = 64
+use_git = true
+# extensions = [".py", ".ts"]
+
+[search]
+mode = "hybrid"     # hybrid | dense | lexical
+top_k = 10
+candidate_pool = 100
+rrf_k = 60
+dense_weight = 1.0
+lexical_weight = 1.0
+scan_batch = 2048
