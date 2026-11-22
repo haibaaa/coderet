@@ -15,6 +15,7 @@ dependencies = [
     "transformers>=4.48,<5",
     "sentence-transformers>=3.0,<6",
     "einops",
+    "rich>=15.0.0",
 ]
 
 [project.scripts]

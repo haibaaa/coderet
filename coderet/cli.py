@@ -78,18 +78,23 @@ def cmd_search(args) -> None:
                 out.append(d)
             _print_json(out)
             return
+        if args.pretty:
+            from .pretty import render_results
+            # pretty output scrolls, so show whole chunks unless --lines is given
+            render_results(
+                args.query, results,
+                max_lines=None if args.full or args.lines is None else args.lines,
+                callers_for=(lambda r: graph.callers(store, r.symbol, limit=5)) if args.with_deps else None,
+                theme=args.theme, pager=not args.no_pager,
+            )
+            return
+        from .pretty import score_label
+        n_lines = 8 if args.lines is None else args.lines
         for i, r in enumerate(results, 1):
-            parts = [f"{r.score:.4f}"]
-            if r.dense_rank:
-                parts.append(f"dense#{r.dense_rank}")
-            if r.lexical_rank:
-                parts.append(f"bm25#{r.lexical_rank}")
-            if r.rerank_score is not None:
-                parts.append("reranked")
             print(f"{i:>2}. {r.path}:{r.start_line}-{r.end_line}  {r.symbol or '(' + r.kind + ')'}  "
-                  f"[{' '.join(parts)}]")
+                  f"[{score_label(r)}]")
             lines = r.text.split("\n")
-            shown = lines if args.full else lines[: args.lines]
+            shown = lines if args.full else lines[:n_lines]
             for line in shown:
                 print(f"      {line}")
             if len(shown) < len(lines):
@@ -216,7 +221,13 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--no-rerank", action="store_true", help="disable reranking")
     s.add_argument("--json", action="store_true")
     s.add_argument("--full", action="store_true", help="print/return full chunk text")
-    s.add_argument("--lines", type=int, default=8, help="snippet lines to print")
+    s.add_argument("--lines", type=int, default=None,
+                   help="snippet lines per result (default: 8, or the whole chunk with --pretty)")
+    s.add_argument("--pretty", action="store_true",
+                   help="syntax-highlighted output in a scrollable pager (for humans)")
+    s.add_argument("--no-pager", action="store_true", help="with --pretty: print directly, no pager")
+    s.add_argument("--theme", default="monokai",
+                   help="with --pretty: pygments colour theme, e.g. monokai, github-dark, solarized-light")
     s.add_argument("--with-deps", action="store_true", help="show call sites of each result's symbol")
     s.set_defaults(func=cmd_search)
 

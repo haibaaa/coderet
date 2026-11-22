@@ -32,6 +32,7 @@ coderet index path/to/repo            # parse, resolve deps, embed (incremental)
 coderet index path/to/repo --no-embed # parse only; run `coderet embed` later
 coderet search "where is the retry backoff computed" --repo path/to/repo
 coderet search "parse config" --mode lexical --glob 'src/*' --lang python --json
+coderet search "session cookie signing" --pretty   # highlighted, scrollable (less)
 coderet symbol load_config            # definitions
 coderet callers load_config           # call sites + enclosing definition
 coderet callees Indexer.scan          # calls made, resolved to definitions
