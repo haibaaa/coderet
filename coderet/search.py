@@ -156,6 +156,8 @@ class Searcher:
                 info[cid][f"{label}_score"] = s
 
         ranked = sorted(fused.items(), key=lambda kv: (-kv[1], kv[0]))
+        if scfg.graph_rerank:
+            ranked = self._graph_rerank(ranked)
         use_rerank = self.cfg.rerank.enabled if rerank is None else rerank
         n_fetch = max(top_k, self.cfg.rerank.pool) if use_rerank else top_k
         results = self._hydrate(ranked[:n_fetch], info)
@@ -170,6 +172,37 @@ class Searcher:
                 r.score = s
             results.sort(key=lambda r: (-r.score, r.chunk_id))
         return results[:top_k]
+
+    def _graph_rerank(self, ranked: list[tuple[int, float]]) -> list[tuple[int, float]]:
+        """Test-aware reranking over the fused list (rank space, mode-agnostic).
+
+        base(c) = 1 / (rrf_k + rank(c)).  For every test chunk t in the top
+        `graph_top`, each non-test definition chunk c it calls receives
+        graph_beta * base(t) / |callees(t)|.  Test chunks are scaled by
+        test_weight.  Boosted chunks need not be in the original list.
+        """
+        from .graph import callee_definition_chunks, is_test_path
+
+        scfg = self.cfg.search
+        if not ranked:
+            return ranked
+        base = {cid: 1.0 / (scfg.rrf_k + r) for r, (cid, _) in enumerate(ranked, 1)}
+        ids = [cid for cid, _ in ranked]
+        paths = dict(self.store.conn.execute(
+            "SELECT c.id, f.path FROM chunks c JOIN files f ON f.id = c.file_id "
+            f"WHERE c.id IN ({','.join('?' * len(ids))})", ids).fetchall())
+        is_test = {cid: is_test_path(paths.get(cid, "")) for cid in ids}
+        scores = {cid: b * (scfg.test_weight if is_test[cid] else 1.0) for cid, b in base.items()}
+        for cid in ids[: scfg.graph_top]:
+            if not is_test[cid]:
+                continue
+            targets = callee_definition_chunks(self.store, cid)
+            if not targets:
+                continue
+            share = scfg.graph_beta * base[cid] / len(targets)
+            for t in targets:
+                scores[t] = scores.get(t, 0.0) + share
+        return sorted(scores.items(), key=lambda kv: (-kv[1], kv[0]))
 
     def _hydrate(self, ranked: list[tuple[int, float]], info: dict[int, dict]) -> list[SearchResult]:
         if not ranked:

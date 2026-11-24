@@ -51,6 +51,9 @@ class RerankConfig:
 
 @dataclass
 class ChunkingConfig:
+    # "syntax": tree-sitter definition-level chunks (default).
+    # "window": fixed overlapping line windows for every file (baseline/ablation).
+    strategy: str = "syntax"
     # Syntax units larger than this are split into nested units or line windows.
     max_chunk_chars: int = 3000
     window_lines: int = 60
@@ -95,6 +98,14 @@ class SearchConfig:
     lexical_weight: float = 1.0
     # Embedding rows scanned per step during dense search (bounds memory).
     scan_batch: int = 2048
+    # Test-aware graph reranking: when test chunks rank in the top `graph_top`,
+    # boost the non-test definitions they call (resolved via the dependency
+    # graph) by `graph_beta` times the test chunk's rank score, and multiply
+    # test chunks' own scores by `test_weight` (1.0 = unchanged).
+    graph_rerank: bool = False
+    graph_beta: float = 1.0
+    graph_top: int = 10
+    test_weight: float = 1.0
 
 
 @dataclass
@@ -150,6 +161,8 @@ def validate(cfg: Config) -> None:
         raise ValueError(f"search.mode must be hybrid|dense|lexical, got {cfg.search.mode!r}")
     if cfg.model.backend not in {"sentence-transformers", "hashing"}:
         raise ValueError(f"model.backend must be sentence-transformers|hashing, got {cfg.model.backend!r}")
+    if cfg.chunking.strategy not in {"syntax", "window"}:
+        raise ValueError(f"chunking.strategy must be syntax|window, got {cfg.chunking.strategy!r}")
     if cfg.chunking.window_overlap >= cfg.chunking.window_lines:
         raise ValueError("chunking.window_overlap must be smaller than chunking.window_lines")
     for name in ("batch_size",):

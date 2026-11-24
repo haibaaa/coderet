@@ -1,0 +1,1 @@
+[hybrid] precision@1=0.6905  recall@1=0.6786  f1@1=0.6825  hit@1=0.6905  ndcg@1=0.6905  precision@3=0.3095  recall@3=0.8929  f1@3=0.4571  hit@3=0.9048  ndcg@3=0.8136  precision@5=0.1952  recall@5=0.9405  f1@5=0.3220  hit@5=0.9524  ndcg@5=0.8341  precision@10=0.1000  recall@10=0.9643  f1@10=0.1807  hit@10=0.9762  ndcg@10=0.8413  mrr@10=0.8042

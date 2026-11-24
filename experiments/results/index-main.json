@@ -1,0 +1,13 @@
+{
+  "discovered": 194,
+  "added": 0,
+  "updated": 194,
+  "unchanged": 0,
+  "removed": 0,
+  "skipped": 0,
+  "chunks_written": 1307,
+  "dependency_edges": 343,
+  "embedded": 0,
+  "seconds": 4.72,
+  "index": "/home/viz/r/flask/.coderet/index.db"
+}

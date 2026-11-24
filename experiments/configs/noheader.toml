@@ -1,0 +1,4 @@
+[chunking]
+embed_header = false
+[index]
+path = ".coderet/abl-noheader.db"

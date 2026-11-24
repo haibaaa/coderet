@@ -1,0 +1,13 @@
+{
+  "discovered": 194,
+  "added": 194,
+  "updated": 0,
+  "unchanged": 0,
+  "removed": 0,
+  "skipped": 0,
+  "chunks_written": 1307,
+  "dependency_edges": 316,
+  "embedded": 1301,
+  "seconds": 1006.71,
+  "index": "/home/viz/r/flask/.coderet/abl-noheader.db"
+}

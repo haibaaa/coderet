@@ -24,6 +24,10 @@ class _FileIndex:
         self.by_suffix: dict[str, list[int]] = defaultdict(list)
         self.by_dir_suffix: dict[str, list[int]] = defaultdict(list)
         self.path_of: dict[int, str] = {}
+        # directories that are Python packages (contain __init__.py)
+        self.py_packages: set[str] = {
+            posixpath.dirname(p) for _, p in rows if posixpath.basename(p) == "__init__.py"
+        }
         for fid, path in rows:
             self.by_path[path] = fid
             self.path_of[fid] = path
@@ -52,6 +56,26 @@ class _FileIndex:
         dirs = {posixpath.dirname(self.path_of[f]) for f in cands}
         best = max(dirs, key=lambda d: (_common_prefix_len(d, src), -len(d)))
         return [f for f in cands if posixpath.dirname(self.path_of[f]) == best]
+
+    def python_absolute(self, parts: list[str], src: str) -> list[int]:
+        """Files importable as absolute module `parts` (e.g. ["flask", "app"]).
+
+        A file matches only if the directory holding the top-level package is
+        not itself a package, i.e. it could be an import root on sys.path.
+        This stops `import typing` from resolving to `src/flask/typing.py`,
+        which is only importable as `flask.typing`.
+        """
+        rel = "/".join(parts)
+        for suffix in (rel + ".py", rel + "/__init__.py"):
+            ok = []
+            for f in self.by_suffix.get(suffix, []):
+                path = self.path_of[f]
+                root = path[: len(path) - len(suffix)].rstrip("/")
+                if root not in self.py_packages:
+                    ok.append(f)
+            if ok:
+                return self._closest(ok, src)
+        return []
 
     def _closest(self, cands: list[int], src: str) -> list[int]:
         if len(cands) <= 1:
@@ -101,7 +125,7 @@ def resolve_import(idx: _FileIndex, lang: str, src: str, module: str, name: str 
                 return _first(idx.exact(p + ".py"), idx.exact(p + "/__init__.py"))
             if not rel:
                 return []
-            return _first(idx.suffix(rel + ".py", src), idx.suffix(rel + "/__init__.py", src))
+            return idx.python_absolute(mod_parts, src)
         parts = rest.split(".") if rest else []
         if name and name != "*":
             hit = cands(parts + [name])  # `from pkg import submodule`

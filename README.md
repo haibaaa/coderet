@@ -1,93 +1,116 @@
 # coderet
 
-An offline, CPU-only code retrieval tool for research and experiments. It
-splits a repository into syntax-aware chunks with tree-sitter, extracts a
-dependency graph (definitions, calls, imports), stores everything in SQLite,
-and answers natural-language queries with exact dense search plus BM25.
+Search a code repository with natural-language queries. Runs on a CPU.
 
-The design follows the constraints in `CLAUDE.md`: retrieval quality comes
-first, the default model runs in full precision on CPU, embeddings are cached,
-indexing is incremental and resumable, and memory stays bounded.
+## Setup
 
-## Install
+1. Install [uv](https://docs.astral.sh/uv/):
 
-This is a [uv](https://docs.astral.sh/uv/) project:
+   ```bash
+   curl -LsSf https://astral.sh/uv/install.sh | sh        # macOS / Linux
+   # Windows (PowerShell): irm https://astral.sh/uv/install.ps1 | iex
+   ```
 
-```bash
-uv sync                      # creates .venv from uv.lock (CPU-only torch)
-uv run coderet --help        # or: source .venv/bin/activate
-```
+2. Install the project:
 
-`uv.lock` pins every dependency version, which keeps experiments
-reproducible. torch always comes from the CPU wheel index (see
-`[tool.uv.sources]` in `pyproject.toml`), so no CUDA runtime is downloaded.
+   ```bash
+   git clone https://github.com/haibaaa/coderet.git
+   cd coderet
+   uv sync
+   ```
 
-> **Note:** CodeRankEmbed's remote modeling code does not work with
-> transformers 5.x, so `pyproject.toml` pins `transformers>=4.48,<5`.
+3. Check that it works:
+
+   ```bash
+   uv run pytest
+   ```
 
 ## Usage
 
+Index a repository, then search it:
+
 ```bash
-coderet index path/to/repo            # parse, resolve deps, embed (incremental)
-coderet index path/to/repo --no-embed # parse only; run `coderet embed` later
-coderet search "where is the retry backoff computed" --repo path/to/repo
-coderet search "parse config" --mode lexical --glob 'src/*' --lang python --json
-coderet search "session cookie signing" --pretty   # highlighted, scrollable (less)
-coderet symbol load_config            # definitions
-coderet callers load_config           # call sites + enclosing definition
-coderet callees Indexer.scan          # calls made, resolved to definitions
-coderet deps src/app.py               # imports (resolved) and importers
-coderet stats
-coderet eval queries.jsonl --modes dense,lexical,hybrid --output report.json
-coderet prune [--only-active]         # drop unused cached vectors
+uv run coderet index path/to/repo
+uv run coderet search "where is the session cookie signed" --repo path/to/repo
 ```
 
-All commands take `--repo`, `--config` and `--index`. Progress goes to stderr
-and results go to stdout.
+The first `index` downloads the embedding model (~550 MB). Indexing is
+incremental: running it again only processes changed files.
 
-## How it works
+## Commands
 
-| Stage | Details |
+| Command | What it does |
 |---|---|
-| Discovery | `git ls-files` (respects `.gitignore`), or a directory walk with excluded dirs. Binary and oversized files are skipped. |
-| Change detection | A (size, mtime) fast path, then sha256. Changing the chunking settings forces a full re-parse. Deleted files are removed. |
-| Chunking | One chunk per function or class. An oversized class is split into its methods plus a header chunk. An oversized function without nested definitions becomes overlapping line windows. Code outside definitions becomes `module` chunks. Languages without a grammar use line windows. |
-| Languages (syntax-aware) | Python, JavaScript, TypeScript/TSX, Java, Go, Rust, C, C++, Ruby, C#, PHP. Markdown, YAML, shell and similar files are indexed as text. |
-| Dependency graph | Definitions with qualified names, call references, and imports. Imports are resolved to files using per-language rules (Python relative/absolute, JS relative, C includes, Go via `go.mod`, Java packages, Rust `crate::`/`super::`, Ruby, PHP). External packages are left unresolved rather than guessed. |
-| Embedding | Batched (`model.batch_size`), committed every `index.embed_fetch` chunks, so an interrupted run resumes where it stopped. The cache key is (sha256 of the embedded text, model key), so identical chunks share one vector and you can switch between checkpoints without recomputing. |
-| Dense search | An exact (exhaustive) cosine scan streamed from SQLite `scan_batch` rows at a time. No approximate index, so no recall loss. |
-| Lexical search | SQLite FTS5 BM25 with column weights (path 2, symbol 4, body 1). Identifiers are also indexed as camelCase/snake_case sub-tokens. |
-| Fusion | Weighted reciprocal rank fusion (`rrf_k`, `dense_weight`, `lexical_weight`). Ties break by chunk id, so results are deterministic. |
-| Reranking | Optional cross-encoder (`[rerank] enabled = true`) over the top `pool` fused candidates. |
+| `index [REPO]` | Parse, chunk and embed a repository |
+| `embed` | Embed chunks that are not embedded yet |
+| `search QUERY` | Search the index |
+| `symbol NAME` | Find where a function or class is defined |
+| `callers NAME` | Find where a function is called |
+| `callees NAME` | List the functions a function calls |
+| `deps PATH` | Show a file's imports and the files that import it |
+| `stats` | Show index statistics |
+| `eval QUERIES` | Evaluate search accuracy on a labelled query file |
+| `config` | Print the active configuration |
+| `prune` | Delete cached embeddings that are no longer used |
 
-## Reproducibility
+Run `uv run coderet <command> --help` for details.
 
-- `coderet eval` reports include the full config, a config fingerprint, the
-  model key, library versions and index statistics.
-- Pin `model.revision` to a commit hash for exact model reproducibility.
-- Torch runs with a fixed seed and `use_deterministic_algorithms(warn_only=True)`.
-- `INDEX_FORMAT_VERSION` in `coderet/__init__.py` invalidates stale indexes
-  when the parsing logic changes.
+## Flags
 
-## Evaluation format
+**All commands**
 
-One JSON object per line in the query file:
+| Flag | Meaning |
+|---|---|
+| `--repo PATH` | Repository to use (default: current directory) |
+| `--config FILE` | Config file (default: `<repo>/coderet.toml` if it exists) |
+| `--index FILE` | Index database (default: `<repo>/.coderet/index.db`) |
 
-```json
-{"id": "q1", "query": "parse the config file", "relevant": ["src/config.py::load_config"]}
-```
+**`index`**
 
-A target can be `path`, `path::Symbol` (matches `Symbol` and anything nested
-under it) or `path:120-160` (line overlap). The metrics are recall@k, hit@k,
-nDCG@k and MRR. Each target is credited only once.
+| Flag | Meaning |
+|---|---|
+| `--no-embed` | Parse only; run `embed` later |
 
-`examples/self_queries.jsonl` is a small benchmark built from this repo's own
-code. On it, CodeRankEmbed scored MRR@10 0.93 dense, 0.83 hybrid and
-0.60 lexical. Ten queries are too few to tune defaults on, so build a labelled
-set for your target repositories and compare `--modes` and weights there.
+**`search`**
 
-## Tests
+| Flag | Meaning |
+|---|---|
+| `-k N` | Number of results |
+| `--mode dense\|lexical\|hybrid` | Search method (default: `hybrid`) |
+| `--glob PATTERN` | Only search matching paths, e.g. `'src/*'` |
+| `--lang LANG` | Only search one language, e.g. `python` |
+| `--pretty` | Syntax-highlighted results in a scrollable pager |
+| `--no-pager` | With `--pretty`: print directly instead of opening `less` |
+| `--theme NAME` | With `--pretty`: colour theme (default `ansi_dark`; also `ansi_light`, `monokai`, ...) |
+| `--lines N` | Lines shown per result (default: 8, or all with `--pretty`) |
+| `--full` | Show whole chunks |
+| `--with-deps` | Show where each result is called from |
+| `--json` | JSON output |
+| `--rerank` / `--no-rerank` | Turn the cross-encoder reranker on or off |
+
+**`eval`**
+
+| Flag | Meaning |
+|---|---|
+| `--modes LIST` | Modes to compare, e.g. `dense,lexical,hybrid` |
+| `--k LIST` | Cut-offs, e.g. `1,5,10` |
+| `--output FILE` | Save the full JSON report |
+| `--rerank` / `--no-rerank` | Turn the cross-encoder reranker on or off |
+
+**`callers`**: `--limit N` caps the number of call sites.
+**`prune`**: `--only-active` also deletes embeddings from other models.
+
+## Examples
 
 ```bash
-uv run pytest   # uses the model-free "hashing" backend; no downloads needed
+uv run coderet search "parse config" --repo ../flask --mode dense -k 5
+uv run coderet search "session cookie" --repo ../flask --pretty --with-deps
+uv run coderet callers load_config --repo ../flask
+uv run coderet deps src/flask/app.py --repo ../flask
+uv run coderet eval examples/flask_queries.jsonl --repo ../flask --modes dense,lexical,hybrid
 ```
+
+## Configuration
+
+Copy `coderet.example.toml` to `<repo>/coderet.toml` to change the model,
+chunk sizes or search settings. Every option is listed in that file.

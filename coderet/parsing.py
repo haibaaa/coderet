@@ -87,7 +87,10 @@ def parse_source(source: bytes, language: str, cfg: ChunkingConfig) -> ParsedFil
     root = tree.root_node
     result.syntax_errors = root.has_error
     extractor = _Extractor(spec, source, lines, cfg)
-    result.chunks = extractor.chunk_scope(root, 1, len(lines), None, "module")
+    if cfg.strategy == "window":  # dependency extraction still uses the syntax tree
+        result.chunks = _window_chunks(lines, 1, len(lines), "window", None, cfg)
+    else:
+        result.chunks = extractor.chunk_scope(root, 1, len(lines), None, "module")
     extractor.collect_dependencies(root, result)
     return result
 

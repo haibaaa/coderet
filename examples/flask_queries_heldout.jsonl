@@ -1,0 +1,33 @@
+# HELD-OUT eval queries for pallets/flask @ 49943b5a94413a530761350f04e896f76e8d620e
+# Written before the graph reranker was implemented; never used for tuning.
+# No target overlaps examples/flask_queries.jsonl (the development set).
+{"id": "h-config-object", "query": "load configuration from the uppercase attributes of a module or class", "relevant": ["src/flask/config.py::Config.from_object"]}
+{"id": "h-config-file", "query": "load configuration from a file using a custom parser such as TOML or JSON", "relevant": ["src/flask/config.py::Config.from_file"]}
+{"id": "h-config-envvar", "query": "load configuration from a file whose path is given by an environment variable", "relevant": ["src/flask/config.py::Config.from_envvar"]}
+{"id": "h-instance-resource", "query": "open a file in the instance folder, which unlike package resources may be opened for writing", "relevant": ["src/flask/app.py::Flask.open_instance_resource"]}
+{"id": "h-template-context", "query": "add request, session, config and g to the variables available in templates", "relevant": ["src/flask/app.py::Flask.update_template_context"]}
+{"id": "h-log-exception", "query": "write an error message with the traceback to the application logger", "relevant": ["src/flask/app.py::Flask.log_exception"]}
+{"id": "h-trap", "query": "decide whether an HTTP error raised by a view should be re-raised instead of handled, based on configuration", "relevant": ["src/flask/sansio/app.py::App.trap_http_exception"]}
+{"id": "h-autoescape", "query": "decide whether HTML autoescaping applies to a template based on its file extension", "relevant": ["src/flask/sansio/app.py::App.select_jinja_autoescape"]}
+{"id": "h-url-defaults", "query": "fill in default values for URL variables when building a URL for an endpoint", "relevant": ["src/flask/sansio/app.py::App.inject_url_defaults"]}
+{"id": "h-template-debug", "query": "explain which loaders were tried when a template could not be found", "relevant": ["src/flask/debughelpers.py::explain_template_loading_attempts"]}
+{"id": "h-macro", "query": "call a macro defined in a template from Python code", "relevant": ["src/flask/helpers.py::get_template_attribute"]}
+{"id": "h-record-once", "query": "register a setup function that runs only the first time a blueprint is registered", "relevant": ["src/flask/sansio/blueprints.py::Blueprint.record_once"]}
+{"id": "h-bg-thread", "query": "make a function see the current request when it runs in a background thread or greenlet", "relevant": ["src/flask/ctx.py::copy_current_request_context"]}
+{"id": "h-bad-json", "query": "handle a request body that cannot be parsed as JSON", "relevant": ["src/flask/wrappers.py::Request.on_json_loading_failed"]}
+{"id": "h-cookie-domain", "query": "which domain the session cookie is valid for, including subdomains", "relevant": ["src/flask/sessions.py::SessionInterface.get_cookie_domain"]}
+{"id": "h-banner", "query": "print startup messages when the development server starts, but not again in the reloader", "relevant": ["src/flask/cli.py::show_server_banner"]}
+{"id": "h-default-endpoint", "query": "derive the default endpoint name for a route from the view function", "relevant": ["src/flask/sansio/scaffold.py::_endpoint_from_view_func"]}
+{"id": "h-cookie-size", "query": "maximum size of a cookie before a warning is issued", "relevant": ["src/flask/wrappers.py::Response.max_cookie_size"]}
+{"id": "h-cli-appcontext", "query": "decorator that runs a command line command inside an application context", "relevant": ["src/flask/cli.py::with_appcontext"]}
+{"id": "h-render-string", "query": "render a template given as a string instead of a file", "relevant": ["src/flask/templating.py::render_template_string"]}
+{"id": "h-as-view", "query": "convert a class-based view into a function that can be registered as a route", "relevant": ["src/flask/views.py::View.as_view"]}
+{"id": "h-redirect", "query": "return a response that redirects the client to another URL", "relevant": ["src/flask/helpers.py::redirect", "src/flask/sansio/app.py::App.redirect"]}
+{"id": "h-abort", "query": "stop handling the request and raise an HTTP error with a status code", "relevant": ["src/flask/helpers.py::abort"]}
+{"id": "h-test-request-ctx", "query": "create a request context from a fake WSGI environment for testing", "relevant": ["src/flask/app.py::Flask.test_request_context"]}
+{"id": "h-teardown", "query": "run the registered teardown functions after the response is finalized, right before the request context is removed", "relevant": ["src/flask/app.py::Flask.do_teardown_request"]}
+{"id": "h-json-default", "query": "convert dates, decimals, UUIDs and dataclasses to JSON-compatible values", "relevant": ["src/flask/json/provider.py::_default"]}
+{"id": "h-create-logger", "query": "set up the application's logger and its default handler", "relevant": ["src/flask/logging.py::create_logger"]}
+{"id": "h-root-path", "query": "find the filesystem directory of a module or package", "relevant": ["src/flask/helpers.py::get_root_path"]}
+{"id": "h-shell", "query": "start an interactive Python shell with the application loaded", "relevant": ["src/flask/cli.py::shell_command"]}
+{"id": "h-url-adapter", "query": "create the URL matcher bound to the current request or server name", "relevant": ["src/flask/app.py::Flask.create_url_adapter"]}

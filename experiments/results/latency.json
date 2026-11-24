@@ -1,0 +1,16 @@
+{
+  "model_load_seconds": 12.06,
+  "queries": 42,
+  "lexical": {
+    "median_ms": 3.8,
+    "p90_ms": 4.5
+  },
+  "dense": {
+    "median_ms": 176.7,
+    "p90_ms": 225.8
+  },
+  "hybrid": {
+    "median_ms": 179.6,
+    "p90_ms": 226.3
+  }
+}

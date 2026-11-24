@@ -141,6 +141,25 @@ def test_dependencies(repo):
     assert any(t.startswith("pkg/util.py") and "read_text" in t for t in targets)
 
 
+def test_python_absolute_import_not_shadowed_by_package_module(tmp_path):
+    """`import logging` inside a package that has its own logging.py must stay
+    unresolved (stdlib); `from pkg import logging` must resolve to it."""
+    files = {
+        "src/pkg/__init__.py": "",
+        "src/pkg/logging.py": "def create_logger():\n    return 1\n",
+        "src/pkg/app.py": "import logging\nfrom pkg import logging as plog\n\ndef run():\n    return plog.create_logger()\n",
+    }
+    for rel, text in files.items():
+        p = tmp_path / rel
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(text)
+    cfg, store, emb, _ = build(tmp_path)
+    imports = graph.file_dependencies(store, "src/pkg/app.py")["imports"]
+    by = {(i["module"], i["name"]): i["resolved"] for i in imports}
+    assert by[("logging", None)] is None
+    assert by[("pkg", "logging")] == "src/pkg/logging.py"
+
+
 def test_large_class_split():
     methods = "\n".join(
         f"    def method_{i}(self):\n" + "".join(f"        x{j} = {j}\n" for j in range(10)) + "        return 0\n"
@@ -168,6 +187,13 @@ def test_oversized_function_windows():
     assert covered >= set(range(1, 202))
 
 
+def test_window_strategy_keeps_dependencies():
+    src = b"import os\n\ndef f():\n    return os.getcwd()\n"
+    parsed = parse_source(src, "python", ChunkingConfig(strategy="window", min_chunk_chars=5))
+    assert [c.kind for c in parsed.chunks] == ["window"]
+    assert parsed.definitions[0].name == "f" and parsed.imports[0].module == "os"
+
+
 def test_eval_metrics(repo):
     t = [Target.parse("a.py::f"), Target.parse("b.py")]
     mk = lambda p, s: SearchResult(0, p, 1, 5, "function", s, "python", "", 0.0)
@@ -175,6 +201,8 @@ def test_eval_metrics(repo):
     assert m["first_relevant_rank"] == 2
     assert m["recall@1"] == 0 and m["recall@5"] == 1.0
     assert m["mrr@5"] == 0.5
+    assert m["precision@5"] == 2 / 5 and m["precision@1"] == 0
+    assert abs(m["f1@5"] - 2 * 0.4 * 1.0 / 1.4) < 1e-9
 
     cfg, store, emb, _ = build(repo)
     q = [{"id": "a", "query": "parse JSON configuration", "relevant": ["pkg/config.py::load_config"]}]
@@ -192,6 +220,38 @@ def test_symbol_target_independent_of_chunking(repo):
     whole_class = SearchResult(0, "pkg/app.py", 4, 10, "class_definition", "Application", "python", "", 0.0)
     other_file = SearchResult(0, "pkg/util.py", 4, 10, "function_definition", "x", "python", "", 0.0)
     assert t.matches(whole_class) and not t.matches(other_file)
+
+
+def test_is_test_path():
+    from coderet.graph import is_test_path
+    for p in ["tests/test_app.py", "pkg/tests/helpers.py", "a/b_test.go", "src/x.test.ts",
+              "conftest.py", "src/FooTest.java"]:
+        assert is_test_path(p), p
+    for p in ["src/flask/testing.py", "pkg/app.py", "contest.py", "src/latest.py"]:
+        assert not is_test_path(p), p
+
+
+def test_graph_rerank_promotes_code_called_by_tests(repo):
+    (repo / "tests").mkdir()
+    (repo / "tests" / "test_settings.py").write_text(
+        "from pkg.config import load_config\n\n\n"
+        "def test_settings_file_is_parsed_into_settings_dictionary(tmp_path):\n"
+        "    settings = load_config(tmp_path / 'settings.json')\n"
+        "    assert settings['settings'] == 'settings dictionary parsed'\n"
+    )
+    cfg, store, emb, _ = build(repo)
+    query = "settings file parsed into a settings dictionary"
+    plain = Searcher(store, cfg, emb).search(query, top_k=10, mode="lexical")
+    assert plain[0].path == "tests/test_settings.py"
+    cfg.search.graph_rerank = True
+    cfg.search.graph_beta = 2.0
+    cfg.search.test_weight = 0.5
+    reranked = Searcher(store, cfg, emb).search(query, top_k=10, mode="lexical")
+    rank = lambda rs: next(i for i, r in enumerate(rs) if r.symbol == "load_config")
+    assert any(r.symbol == "load_config" for r in reranked)
+    assert reranked[0].symbol == "load_config"
+    if any(r.symbol == "load_config" for r in plain):
+        assert rank(reranked) < rank(plain)
 
 
 def test_config_rejects_unknown_keys(tmp_path):

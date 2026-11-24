@@ -31,6 +31,7 @@ window_lines = 60
 window_overlap = 10
 min_chunk_chars = 20
 embed_header = true
+strategy = "syntax"   # or "window" (fixed line windows, ablation baseline)
 
 [index]
 path = ".coderet/index.db"
@@ -48,3 +49,9 @@ rrf_k = 60
 dense_weight = 1.0
 lexical_weight = 1.0
 scan_batch = 2048
+# Test-aware graph reranking (experimental; see report): promote non-test code
+# called by highly ranked test chunks.
+graph_rerank = false
+graph_beta = 0.5
+graph_top = 5
+test_weight = 0.5

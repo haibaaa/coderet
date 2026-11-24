@@ -2,7 +2,51 @@
 
 from __future__ import annotations
 
+import re
+
 from .store import Store
+
+_TEST_DIRS = {"test", "tests", "__tests__", "spec", "specs"}
+_TEST_FILE = re.compile(
+    r"^(test_.*\.py|.*_test\.(py|go)|conftest\.py|.*\.(test|spec)\.[jt]sx?|.*Tests?\.(java|cs|kt))$"
+)
+
+
+def is_test_path(path: str) -> bool:
+    """Heuristic: is this file test code (by directory or file-name convention)?"""
+    parts = path.split("/")
+    return any(p in _TEST_DIRS for p in parts[:-1]) or bool(_TEST_FILE.match(parts[-1]))
+
+
+def callee_definition_chunks(store: Store, chunk_id: int) -> set[int]:
+    """Chunks holding the non-test definitions called from `chunk_id`.
+
+    Each call name is resolved with the usual scope preference (same file,
+    then imported files, then anywhere) after discarding definitions in test
+    files, so a test's helpers do not absorb the boost.
+    """
+    row = store.conn.execute("SELECT file_id FROM chunks WHERE id = ?", (chunk_id,)).fetchone()
+    if row is None:
+        return set()
+    src = row[0]
+    out: set[int] = set()
+    names = [r[0] for r in store.conn.execute(
+        "SELECT DISTINCT name FROM refs WHERE chunk_id = ?", (chunk_id,))]
+    for name in names:
+        rows = store.conn.execute(
+            "SELECT d.chunk_id, f.path, "
+            "  CASE WHEN d.file_id = :src THEN 0 "
+            "       WHEN d.file_id IN (SELECT dst_file_id FROM file_deps WHERE src_file_id = :src) THEN 1 "
+            "       ELSE 2 END AS scope "
+            "FROM definitions d JOIN files f ON f.id = d.file_id "
+            "WHERE d.name = :name AND d.chunk_id IS NOT NULL",
+            {"src": src, "name": name},
+        ).fetchall()
+        rows = [r for r in rows if not is_test_path(r[1])]
+        if rows:
+            best = min(r[2] for r in rows)
+            out.update(r[0] for r in rows if r[2] == best)
+    return out
 
 
 def find_definitions(store: Store, name: str, limit: int = 50) -> list[dict]:

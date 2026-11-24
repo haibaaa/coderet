@@ -1,0 +1,4 @@
+[chunking]
+strategy = "window"
+[index]
+path = ".coderet/abl-window.db"

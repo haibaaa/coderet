@@ -110,8 +110,11 @@ def score_query(results: list[SearchResult], targets: list[Target], ks: list[int
     n_rel = len(targets)
     for k in ks:
         hits_k = sum(gains[:k])
-        out[f"recall@{k}"] = hits_k / n_rel
-        out[f"hit@{k}"] = 1.0 if hits_k else 0.0
+        p, r = hits_k / k, hits_k / n_rel
+        out[f"precision@{k}"] = p
+        out[f"recall@{k}"] = r
+        out[f"f1@{k}"] = 2 * p * r / (p + r) if p + r else 0.0
+        out[f"hit@{k}"] = 1.0 if hits_k else 0.0  # hit@1 = top-1 accuracy
         dcg = sum(g / math.log2(i + 2) for i, g in enumerate(gains[:k]))
         idcg = sum(1 / math.log2(i + 2) for i in range(min(n_rel, k)))
         out[f"ndcg@{k}"] = dcg / idcg if idcg else 0.0
